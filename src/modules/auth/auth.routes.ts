@@ -1,39 +1,27 @@
-import { Router, Request, Response } from 'express';
-import { AuthService } from './auth.service.js';
+import { RouteDefinition, createModuleRouter } from '../../shared/middleware/route-builder.js';
+import { AuthController } from './auth.controller.js';
 import { RegisterSchema, LoginSchema } from './auth.schemas.js';
-import { validate } from '../../shared/middleware/validate.js';
-import { asyncHandler } from '../../shared/middleware/async-handler.js';
-import { sendSuccess } from '../../shared/utils/response.js';
 import { authenticate } from '../../shared/middleware/auth.js';
 
-export const authRouter = Router();
+const routes: RouteDefinition[] = [
+  {
+    method: 'post',
+    path: '/register',
+    schema: RegisterSchema,
+    handler: AuthController.register,
+  },
+  {
+    method: 'post',
+    path: '/login',
+    schema: LoginSchema,
+    handler: AuthController.login,
+  },
+  {
+    method: 'get',
+    path: '/me',
+    middlewares: [authenticate],
+    handler: AuthController.me,
+  },
+];
 
-// POST /api/v1/auth/register
-authRouter.post(
-  '/register',
-  validate(RegisterSchema),
-  asyncHandler(async (req: Request, res: Response) => {
-    const result = await AuthService.register(req.body);
-    return sendSuccess(res, result, 201);
-  })
-);
-
-// POST /api/v1/auth/login
-authRouter.post(
-  '/login',
-  validate(LoginSchema),
-  asyncHandler(async (req: Request, res: Response) => {
-    const result = await AuthService.login(req.body);
-    return sendSuccess(res, result);
-  })
-);
-
-// GET /api/v1/auth/me
-authRouter.get(
-  '/me',
-  authenticate,
-  asyncHandler(async (req: Request, res: Response) => {
-    return sendSuccess(res, { user: req.user });
-  })
-);
-
+export const authRouter = createModuleRouter(routes);

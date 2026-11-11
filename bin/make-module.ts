@@ -1,0 +1,163 @@
+#!/usr/bin/env node
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const moduleName = process.argv[2];
+
+if (!moduleName) {
+  console.error('\n❌ Error: Please specify the module name.');
+  console.log('👉 Usage: bun run make:module <module-name>');
+  console.log('👉 Example: bun run make:module products\n');
+  process.exit(1);
+}
+
+const cleanName = moduleName.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+const pascalName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const srcDir = path.resolve(__dirname, '../src');
+const modulesDir = path.join(srcDir, 'modules');
+const targetDir = path.join(modulesDir, cleanName);
+
+if (fs.existsSync(targetDir)) {
+  console.error(`\n❌ Error: Module "${cleanName}" already exists at: ${targetDir}\n`);
+  process.exit(1);
+}
+
+fs.mkdirSync(targetDir, { recursive: true });
+
+// 1. Mongoose Model
+fs.writeFileSync(
+  path.join(targetDir, `${cleanName}.model.ts`),
+  `import { Schema, model } from 'mongoose';
+import { IBaseDocument, baseSchemaOptions } from '../../shared/database/base.schema.js';
+
+export interface I${pascalName} extends IBaseDocument {
+  name: string;
+  description?: string;
+  status: 'ACTIVE' | 'INACTIVE';
+}
+
+const ${pascalName}Schema = new Schema<I${pascalName}>(
+  {
+    name: { type: String, required: true, trim: true },
+    description: { type: String, trim: true },
+    status: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE' },
+  },
+  baseSchemaOptions
+);
+
+export const ${pascalName}Model = model<I${pascalName}>('${pascalName}', ${pascalName}Schema);
+`
+);
+
+// 2. Zod Validation Schemas
+fs.writeFileSync(
+  path.join(targetDir, `${cleanName}.schemas.ts`),
+  `import { z } from 'zod';
+
+export const Create${pascalName}Schema = z.object({
+  body: z.object({
+    name: z.string().min(1, 'Name is required'),
+    description: z.string().optional(),
+    status: z.enum(['ACTIVE', 'INACTIVE']).default('ACTIVE'),
+  }),
+});
+
+export const Update${pascalName}Schema = z.object({
+  body: z.object({
+    name: z.string().optional(),
+    description: z.string().optional(),
+    status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
+  }),
+});
+`
+);
+
+// 3. Service (Extends generic BaseService - ZERO repetitive CRUD queries)
+fs.writeFileSync(
+  path.join(targetDir, `${cleanName}.service.ts`),
+  `import { BaseService } from '../../shared/services/base.service.js';
+import { ${pascalName}Model, I${pascalName} } from './${cleanName}.model.js';
+
+export class ${pascalName}Service extends BaseService<I${pascalName}> {
+  constructor() {
+    super(${pascalName}Model, '${pascalName}');
+  }
+}
+
+export const ${cleanName}Service = new ${pascalName}Service();
+`
+);
+
+// 4. Controller (Extends generic BaseController - ZERO repetitive handler boilerplate)
+fs.writeFileSync(
+  path.join(targetDir, `${cleanName}.controller.ts`),
+  `import { BaseController } from '../../shared/controllers/base.controller.js';
+import { I${pascalName} } from './${cleanName}.model.js';
+import { ${cleanName}Service } from './${cleanName}.service.js';
+
+export class ${pascalName}Controller extends BaseController<I${pascalName}> {
+  constructor() {
+    super(${cleanName}Service);
+  }
+}
+
+export const ${cleanName}Controller = new ${pascalName}Controller();
+`
+);
+
+// 5. Declarative Array Routes
+fs.writeFileSync(
+  path.join(targetDir, `${cleanName}.routes.ts`),
+  `import { RouteDefinition, createModuleRouter } from '../../shared/middleware/route-builder.js';
+import { ${cleanName}Controller } from './${cleanName}.controller.js';
+import { Create${pascalName}Schema, Update${pascalName}Schema } from './${cleanName}.schemas.js';
+import { authenticate } from '../../shared/middleware/auth.js';
+
+const routes: RouteDefinition[] = [
+  {
+    method: 'get',
+    path: '/',
+    middlewares: [authenticate],
+    handler: ${cleanName}Controller.list,
+  },
+  {
+    method: 'get',
+    path: '/:id',
+    middlewares: [authenticate],
+    handler: ${cleanName}Controller.getById,
+  },
+  {
+    method: 'post',
+    path: '/',
+    middlewares: [authenticate],
+    schema: Create${pascalName}Schema,
+    handler: ${cleanName}Controller.create,
+  },
+  {
+    method: 'patch',
+    path: '/:id',
+    middlewares: [authenticate],
+    schema: Update${pascalName}Schema,
+    handler: ${cleanName}Controller.update,
+  },
+  {
+    method: 'delete',
+    path: '/:id',
+    middlewares: [authenticate],
+    handler: ${cleanName}Controller.delete,
+  },
+];
+
+export const ${cleanName}Router = createModuleRouter(routes);
+`
+);
+
+console.log(`\n🎉 Module "${cleanName}" generated successfully at:\n📂 ${targetDir}\n`);
+console.log(`📌 To register it, open "src/router.ts" and add:`);
+console.log(`   import { ${cleanName}Router } from './modules/${cleanName}/${cleanName}.routes.js';`);
+console.log(`   router.use('/${cleanName}', ${cleanName}Router);\n`);

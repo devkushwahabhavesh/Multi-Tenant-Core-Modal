@@ -1,12 +1,17 @@
-import { Router, Request, Response } from 'express';
+import { RouteDefinition, createModuleRouter } from '../../shared/middleware/route-builder.js';
+import { Request, Response } from 'express';
 import { sendSuccess } from '../../shared/utils/response.js';
 
-export const templateRouter = Router();
+const routes: RouteDefinition[] = [
+  {
+    method: 'get',
+    path: '/',
+    handler: (_req: Request, res: Response) => {
+      return sendSuccess(res, {
+        message: 'Template module blueprint. Duplicate this directory to scaffold any new module.',
+      });
+    },
+  },
+];
 
-// GET /api/v1/_template
-templateRouter.get('/', (_req: Request, res: Response) => {
-  return sendSuccess(res, {
-    message: 'Template module blueprint. Duplicate this directory to scaffold any new domain module.',
-  });
-});
-
+export const templateRouter = createModuleRouter(routes);

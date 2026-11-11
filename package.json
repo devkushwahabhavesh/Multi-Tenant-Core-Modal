@@ -1,14 +1,17 @@
 {
-  "name": "express-mongodb-modular-starter",
+  "name": "@core/express-mongodb-starter",
   "version": "1.0.0",
-  "description": "Production-grade, highly scalable modular monolith boilerplate for Node.js, Express, TypeScript, Mongoose and Zod",
+  "description": "Production-grade, highly scalable modular monolith backend starter for Node.js, Express.js, TypeScript, Mongoose (MongoDB), and Zod",
   "main": "dist/index.js",
   "type": "module",
+  "bin": {
+    "make-module": "./bin/make-module.js"
+  },
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "bun test"
+    "make:module": "bun bin/make-module.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -32,4 +35,3 @@
     "typescript": "^5.6.3"
   }
 }
-
