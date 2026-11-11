@@ -1,20 +1,21 @@
 import { createApp } from './app.js';
-import { connectDatabase } from './shared/database/connection.js';
+import { getTenantDatabaseConnection } from './common/database/connection-pool.js';
 import { config } from './config/env.js';
+import { logger } from './common/logger/logger.js';
 
-async function bootstrap() {
-  // Connect to MongoDB
-  await connectDatabase();
+const bootstrap = async () => {
+  // Establish default DB connectivity
+  await getTenantDatabaseConnection('tenant_default');
 
   const app = createApp();
 
   app.listen(config.port, () => {
-    console.log(`✨ Generic MongoDB API Server running on http://localhost:${config.port}/api/v1/health`);
+    logger.info(`✨ Server running at http://localhost:${config.port}/api/v1/health`);
+    logger.info(`🔒 Multi-Tenancy active: pass 'x-tenant-id' to isolate database queries`);
   });
-}
+};
 
 bootstrap().catch((err) => {
-  console.error('Fatal bootstrap error:', err);
+  logger.error('Fatal bootstrap failure:', err);
   process.exit(1);
 });
-

@@ -1,26 +1,30 @@
 import { Router } from 'express';
 import { authRouter } from './modules/auth/auth.routes.js';
-import { usersRouter } from './modules/users/users.routes.js';
-import { templateRouter } from './modules/_template/_template.routes.js';
+import { userRouter } from './modules/users/user.routes.js';
+import { rolesRouter } from './modules/roles/routes/role.routes.js';
 import { config } from './config/env.js';
+import { getTenantId, getRequestId } from './common/context/index.js';
 
-export function createRouter(): Router {
+export const createRouter = (): Router => {
   const router = Router();
 
-  // Root System Healthcheck
+  // Root System Healthcheck with active Tenant & Request Tracing
   router.get('/health', (_req, res) => {
     res.json({
       status: 'UP',
       app: config.appName,
       env: config.env,
+      tenantId: getTenantId(),
+      requestId: getRequestId(),
       timestamp: new Date().toISOString(),
     });
   });
 
-  // Core Vertical Modules
+  // Vertical Modules
   router.use('/auth', authRouter);
-  router.use('/users', usersRouter);
-  router.use('/_template', templateRouter);
+  router.use('/users', userRouter);
+  router.use('/roles', rolesRouter);
+  router.use('/rbac', rolesRouter); // Backward compatibility alias
 
   return router;
-}
+};

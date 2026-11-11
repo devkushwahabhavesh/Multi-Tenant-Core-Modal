@@ -43,6 +43,7 @@ This codebase avoids unnecessary repository abstractions and over-engineering by
 
 2. **⚡ One-Command Module Generator**:
    Scaffold complete, strongly-typed CRUD modules with zero boilerplate:
+
    ```bash
    bun run make:module products
    # or
@@ -119,16 +120,20 @@ backend-mongodb-starter/
 ## 🚀 Quick Start Guide
 
 ### 1. Install & Build
+
 ```bash
 bun install
 bun run build
 ```
 
 ### 2. Scaffold a New Feature
+
 ```bash
 bun run make:module orders
 ```
+
 Register the generated router in `src/router.ts`:
+
 ```typescript
 import { ordersRouter } from './modules/orders/orders.routes.js';
 
@@ -136,7 +141,9 @@ router.use('/orders', ordersRouter);
 ```
 
 ### 3. Start Development Server
+
 ```bash
 bun run dev
 ```
+
 Healthcheck: `http://localhost:5000/api/v1/health`

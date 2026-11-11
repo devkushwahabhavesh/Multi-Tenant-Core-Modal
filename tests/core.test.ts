@@ -1,30 +1,42 @@
 import { describe, it, expect } from 'bun:test';
-import { signToken, verifyToken } from '../src/shared/utils/jwt.js';
-import { AppError, NotFoundError, UnauthorizedError } from '../src/core/errors.js';
+import { signAccessToken, verifyToken } from '../src/common/utils/jwt.js';
+import {
+  AppError,
+  NotFoundError,
+  UnauthorizedError,
+  BadRequestError,
+} from '../src/common/errors/index.js';
 
-describe('Generic Core & Shared Utilities', () => {
+describe('Enterprise Modular MongoDB Core Verification', () => {
   it('Signs and verifies JWT token payloads correctly', () => {
     const payload = {
       userId: 'usr_abc123',
+      tenantId: 'tenant_alpha',
       email: 'alex@example.com',
       role: 'ADMIN',
     };
 
-    const token = signToken(payload);
+    const token = signAccessToken(payload);
     expect(typeof token).toBe('string');
     expect(token.length).toBeGreaterThan(20);
 
     const decoded = verifyToken(token);
     expect(decoded.userId).toBe(payload.userId);
+    expect(decoded.tenantId).toBe(payload.tenantId);
     expect(decoded.email).toBe(payload.email);
     expect(decoded.role).toBe(payload.role);
+    expect(decoded.type).toBe('access');
   });
 
   it('Instantiates core application errors with appropriate HTTP status codes', () => {
-    const notFound = new NotFoundError('Order', 'ord_999');
+    const notFound = new NotFoundError('User', 'usr_999');
     expect(notFound.statusCode).toBe(404);
     expect(notFound.code).toBe('NOT_FOUND');
-    expect(notFound.message).toContain('ord_999');
+    expect(notFound.message).toContain('usr_999');
+
+    const badReq = new BadRequestError('Invalid token');
+    expect(badReq.statusCode).toBe(400);
+    expect(badReq.code).toBe('BAD_REQUEST');
 
     const unauthorized = new UnauthorizedError();
     expect(unauthorized.statusCode).toBe(401);
@@ -35,4 +47,3 @@ describe('Generic Core & Shared Utilities', () => {
     expect(generic.code).toBe('UNPROCESSABLE');
   });
 });
-
